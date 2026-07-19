@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Loopline</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --void:#0B0B12;
+    --surface:#17151F;
+    --surface-2:#1F1C2A;
+    --ember:#FF5A36;
+    --violet:#7C5CFF;
+    --text-primary:#F5F3F0;
+    --text-muted:#9A96A8;
+    --line: rgba(245,243,240,0.08);
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color: transparent;}
+  html,body{height:100%; margin:0;}
+  body{
+    background: var(--void);
+    font-family:'Inter', sans-serif;
+    color:var(--text-primary);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    overflow:hidden;
+  }
+  .display{ font-family:'Space Grotesk', sans-serif; }
+
+  /* Desktop staging: phone frame */
+  .stage{
+    width:100%;
+    height:100%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:
+      radial-gradient(circle at 30% 20%, rgba(124,92,255,0.10), transparent 45%),
+      radial-gradient(circle at 75% 80%, rgba(255,90,54,0.08), transparent 45%),
+      var(--void);
+  }
+  .phone{
+    position:relative;
+    width:min(420px, 100vw);
+    height:min(920px, 100vh);
+    background: var(--void);
+    border-radius: 40px;
+    overflow:hidden;
+    box-shadow: 0 40px 100px rgba(0,0,0,0.6), 0 0 0 10px #05050a, 0 0 0 11px rgba(255,255,255,0.06);
+  }
+  @media (max-width: 480px){
+    .phone{ border-radius:0; box-shadow:none; width:100vw; height:100vh; }
+  }
+
+  /* Top bar */
+  .topbar{
+    position:absolute; top:0; left:0; right:0; z-index:30;
+    padding: 18px 16px 10px;
+    display:flex; align-items:center; justify-content:center;
+    gap:22px;
+    background: linear-gradient(to bottom, rgba(0,0,0,0.55), transparent);
+  }
+  .topbar .tab{
+    font-family:'Space Grotesk', sans-serif;
+    font-size:15px; font-weight:600;
+    color: rgba(245,243,240,0.55);
+    padding-bottom:6px;
+    border-bottom:2px solid transparent;
+    cursor:pointer;
+  }
+  .topbar .tab.active{ color:var(--text-primary); border-bottom-color: var(--ember); }
+  .brand{
+    position:absolute; top:20px; left:16px; z-index:31;
+    font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:14px;
+    letter-spacing:0.02em;
+    display:flex; align-items:center; gap:6px;
+  }
+  .brand .dot{ width:7px; height:7px; border-radius:50%; background:var(--ember); }
+
+  /* Feed */
+  .feed{
+    height:100%; width:100%;
+    overflow-y:scroll; scroll-snap-type: y mandatory;
+    scrollbar-width:none;
+  }
+  .feed::-webkit-scrollbar{ display:none; }
+  .slide{
+    position:relative;
+    height:100%; width:100%;
+    scroll-snap-align:start;
+    display:flex; align-items:flex-end;
+    overflow:hidden;
+    background:#000;
+  }
+  .slide video{
+    position:absolute; inset:0; width:100%; height:100%; object-fit:cover;
+    filter: saturate(1.05);
+  }
+  .scrim{
+    position:absolute; inset:0;
+    background: linear-gradient(to bottom, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0) 30%, rgba(0,0,0,0.15) 55%, rgba(11,11,18,0.92) 100%);
+    pointer-events:none;
+  }
+
+  /* Caption block */
+  .meta{
+    position:relative; z-index:10;
+    padding: 0 84px 26px 16px;
+    width:100%;
+  }
+  .meta .handle{
+    display:flex; align-items:center; gap:8px;
+    font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:15px;
+    margin-bottom:8px;
+  }
+  .meta .handle .badge{
+    font-size:10px; font-weight:600; color:var(--ember);
+    border:1px solid var(--ember); border-radius:20px; padding:2px 8px;
+    font-family:'Inter',sans-serif;
+  }
+  .meta .caption{
+    font-size:14px; line-height:1.5; color:var(--text-primary);
+    margin-bottom:8px;
+  }
+  .meta .caption .tag{ color:var(--violet); font-weight:600; }
+  .meta .sound{
+    display:flex; align-items:center; gap:7px;
+    font-size:12.5px; color:var(--text-muted);
+  }
+  .meta .sound svg{ width:13px; height:13px; }
+
+  /* Action rail */
+  .rail{
+    position:absolute; z-index:20;
+    right:12px; bottom:100px;
+    display:flex; flex-direction:column; align-items:center; gap:20px;
+  }
+  .rail .avatar-wrap{
+    position:relative; width:52px; height:52px;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .rail .avatar{
+    width:42px; height:42px; border-radius:50%;
+    object-fit:cover; border:2px solid var(--void);
+  }
+  .rail .ring{ position:absolute; inset:0; transform:rotate(-90deg); }
+  .rail .ring circle{ fill:none; stroke-width:2.5; }
+  .rail .ring .track{ stroke: rgba(245,243,240,0.15); }
+  .rail .ring .fill{ stroke: var(--ember); stroke-linecap:round; transition: stroke-dashoffset 0.1s linear; }
+  .rail .plus{
+    position:absolute; bottom:-6px; left:50%; transform:translateX(-50%);
+    width:17px; height:17px; border-radius:50%;
+    background:var(--ember); border:2px solid var(--void);
+    display:flex; align-items:center; justify-content:center;
+    font-size:11px; font-weight:700; color:#fff; cursor:pointer;
+  }
+
+  .act{
+    display:flex; flex-direction:column; align-items:center; gap:4px;
+    cursor:pointer; user-select:none;
+    background:none; border:none; color:var(--text-primary);
+  }
+  .act .icon-btn{
+    width:46px; height:46px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    transition: transform 0.15s ease;
+  }
+  .act .icon-btn:active{ transform:scale(0.85); }
+  .act .count{ font-size:11.5px; font-weight:600; color:var(--text-muted); }
+  .act.liked .count{ color:var(--ember); }
+  .act svg{ width:27px; height:27px; }
+
+  .disc{
+    width:44px; height:44px; border-radius:50%;
+    background: conic-gradient(from 0deg, var(--surface-2), #0a0a0a, var(--surface-2));
+    border:2px solid rgba(245,243,240,0.15);
+    display:flex; align-items:center; justify-content:center;
+    animation: spin 6s linear infinite;
+    overflow:hidden;
+  }
+  .disc img{ width:60%; height:60%; border-radius:50%; object-fit:cover; }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+
+  /* Bottom nav */
+  .navbar{
+    position:absolute; bottom:0; left:0; right:0; z-index:30;
+    height:64px;
+    display:flex; align-items:center; justify-content:space-around;
+    background: rgba(11,11,18,0.85);
+    backdrop-filter: blur(14px);
+    border-top:1px solid var(--line);
+  }
+  .navbar .nitem{
+    display:flex; flex-direction:column; align-items:center; gap:3px;
+    color: var(--text-muted); cursor:pointer;
+  }
+  .navbar .nitem.active{ color:var(--text-primary); }
+  .navbar .nitem svg{ width:22px; height:22px; }
+  .navbar .nitem span{ font-size:10px; font-weight:600; }
+  .navbar .upload-btn{
+    width:42px; height:30px; border-radius:9px;
+    background:linear-gradient(90deg, var(--violet), var(--ember));
+    display:flex; align-items:center; justify-content:center;
+    color:#0B0B12;
+  }
+  .navbar .upload-btn svg{ width:18px; height:18px; }
+
+  /* Mute hint */
+  .mute-btn{
+    position:absolute; top:20px; right:16px; z-index:31;
+    width:32px; height:32px; border-radius:50%;
+    background:rgba(11,11,18,0.55); backdrop-filter: blur(6px);
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer;
+  }
+  .mute-btn svg{ width:16px; height:16px; }
+
+  /* Heart burst */
+  .burst{
+    position:absolute; z-index:25; pointer-events:none;
+    color: var(--ember);
+    animation: burst 0.7s ease-out forwards;
+  }
+  @keyframes burst{
+    0%{ transform: scale(0.3); opacity:0; }
+    30%{ transform: scale(1.15); opacity:1; }
+    100%{ transform: scale(1) translateY(-12px); opacity:0; }
+  }
+
+  /* Comments sheet */
+  .sheet-backdrop{
+    position:absolute; inset:0; z-index:40;
+    background:rgba(0,0,0,0.5);
+    opacity:0; pointer-events:none;
+    transition: opacity 0.25s ease;
+  }
+  .sheet-backdrop.open{ opacity:1; pointer-events:auto; }
+  .sheet{
+    position:absolute; left:0; right:0; bottom:0; z-index:41;
+    height:62%;
+    background:var(--surface);
+    border-radius:20px 20px 0 0;
+    transform: translateY(100%);
+    transition: transform 0.3s cubic-bezier(.2,.8,.25,1);
+    display:flex; flex-direction:column;
+  }
+  .sheet.open{ transform: translateY(0); }
+  .sheet-head{
+    padding:14px 16px 10px; text-align:center; position:relative;
+    border-bottom:1px solid var(--line);
+    font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:14px;
+  }
+  .sheet-head .grabber{
+    width:36px; height:4px; border-radius:4px; background:rgba(245,243,240,0.2);
+    margin:0 auto 10px;
+  }
+  .sheet-head .close{
+    position:absolute; right:14px; top:12px; color:var(--text-muted); cursor:pointer; font-size:18px;
+  }
+  .sheet-body{ flex:1; overflow-y:auto; padding:12px 16px; }
+  .comment{ display:flex; gap:10px; margin-bottom:16px; }
+  .comment img{ width:32px; height:32px; border-radius:50%; object-fit:cover; flex-shrink:0; }
+  .comment .who{ font-size:12.5px; font-weight:600; margin-bottom:2px; }
+  .comment .txt{ font-size:13.5px; color:#DAD7E0; line-height:1.4; }
+  .comment .when{ font-size:11px; color:var(--text-muted); margin-top:4px; }
+  .sheet-input{
+    display:flex; align-items:center; gap:10px;
+    padding:10px 14px calc(10px + env(safe-area-inset-bottom));
+    border-top:1px solid var(--line);
+  }
+  .sheet-input input{
+    flex:1; background:var(--surface-2); border:none; border-radius:20px;
+    padding:10px 14px; color:var(--text-primary); font-size:13px; font-family:'Inter',sans-serif;
+    outline:none;
+  }
+  .sheet-input input::placeholder{ color:var(--text-muted); }
+  .sheet-input button{
+    background:none; border:none; color:var(--ember); font-weight:600; font-size:13px; cursor:pointer;
+  }
+
+  .empty-state{
+    text-align:center; color:var(--text-muted); font-size:13px; padding:30px 20px;
+  }
+</style>
+</head>
+<body>
+
+<div class="stage">
+  <div class="phone" id="phone">
+
+    <div class="brand"><span class="dot"></span> Loopline</div>
+    <div class="topbar">
+      <div class="tab">Following</div>
+      <div class="tab active">For You</div>
+    </div>
+    <div class="mute-btn" id="muteBtn"></div>
+
+    <div class="feed" id="feed"></div>
+
+    <div class="navbar">
+      <div class="nitem active" data-icon="home"><span></span></div>
+      <div class="nitem" data-icon="discover"><span></span></div>
+      <div class="nitem"><div class="upload-btn"></div></div>
+      <div class="nitem" data-icon="inbox"><span></span></div>
+      <div class="nitem" data-icon="profile"><span></span></div>
+    </div>
+
+    <div class="sheet-backdrop" id="sheetBackdrop"></div>
+    <div class="sheet" id="sheet">
+      <div class="sheet-head">
+        <div class="grabber"></div>
+        <span id="commentCount">0 comments</span>
+        <span class="close" id="sheetClose">✕</span>
+      </div>
+      <div class="sheet-body" id="sheetBody"></div>
+      <div class="sheet-input">
+        <input type="text" id="commentInput" placeholder="Add a comment...">
+        <button id="commentPost">Post</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+/* ---------- Icons ---------- */
+const ICONS = {
+  heart: (filled) => `<svg viewBox="0 0 24 24" fill="${filled ? 'currentColor':'none'}" stroke="currentColor" stroke-width="2"><path d="M12 21s-6.7-4.35-9.3-8.2C.8 9.7 1.6 6 4.6 4.8 7 3.8 9.4 4.7 12 7.3c2.6-2.6 5-3.5 7.4-2.5 3 1.2 3.8 4.9 1.9 8-2.6 3.85-9.3 8.2-9.3 8.2z"/></svg>`,
+  comment: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5 8.4 8.4 0 0 1-4-1L3 20l1.1-4.2A8.4 8.4 0 0 1 3 11.5 8.5 8.5 0 0 1 11.5 3 8.5 8.5 0 0 1 21 11.5z"/></svg>`,
+  share: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>`,
+  bookmark: (filled) => `<svg viewBox="0 0 24 24" fill="${filled?'currentColor':'none'}" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>`,
+  music: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="18" cy="16" r="3" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>`,
+  volMute: `<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><polygon points="4 9 4 15 8 15 13 20 13 4 8 9 4 9" fill="#fff" stroke="none"/><line x1="16" y1="9" x2="21" y2="14"/><line x1="21" y1="9" x2="16" y2="14"/></svg>`,
+  volOn: `<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><polygon points="4 9 4 15 8 15 13 20 13 4 8 9 4 9" fill="#fff" stroke="none"/><path d="M16 8a5 5 0 0 1 0 8"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/></svg>`,
+  home: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>`,
+  discover: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg>`,
+  inbox: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.5 5h13l3.5 7v7a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-7z"/></svg>`,
+  profile: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`,
+  plus: `<svg viewBox="0 0 24 24" fill="none" stroke="#0B0B12" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>`,
+};
+
+/* ---------- Sample data (placeholder public sample videos) ---------- */
+const VIDEOS = [
+  { src:"https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4",
+    avatar:"https://i.pravatar.cc/100?img=15", handle:"@juno.codes", verified:true,
+    caption:"testing the new build at golden hour 🌇 does this even count as a road trip",
+    tags:["#roadtrip","#prototype"], sound:"original sound — juno.codes",
+    likes:18400, comments:[
+      {who:"@marta_dev", txt:"the color grade on this is unreal", when:"2h"},
+      {who:"@lo.fi.lena", txt:"okay but WHERE is this", when:"1h"},
+      {who:"@kestrel", txt:"loopline really said cinematic", when:"38m"},
+    ]},
+  { src:"https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4",
+    avatar:"https://i.pravatar.cc/100?img=32", handle:"@ren.builds", verified:false,
+    caption:"day 4 of making something out of nothing. send help or snacks",
+    tags:["#buildinpublic","#dayfour"], sound:"soft static — ren.builds",
+    likes:9260, comments:[
+      {who:"@ppx", txt:"snacks incoming 📦", when:"3h"},
+      {who:"@wildflower", txt:"the plant in the back is thriving btw", when:"2h"},
+    ]},
+  { src:"https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4",
+    avatar:"https://i.pravatar.cc/100?img=47", handle:"@atlas.wanders", verified:true,
+    caption:"left at 5am for this. worth every alarm I ignored first",
+    tags:["#earlybird","#worthit"], sound:"original sound — atlas.wanders",
+    likes:44700, comments:[
+      {who:"@noahvyn", txt:"5am for ME??", when:"5h"},
+      {who:"@camille.k", txt:"this is going straight to my save folder", when:"4h"},
+      {who:"@theo_r", txt:"okay the drone shot at the end", when:"3h"},
+      {who:"@sable", txt:"adding this to the list", when:"1h"},
+    ]},
+  { src:"https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
+    avatar:"https://i.pravatar.cc/100?img=5", handle:"@nova.edits", verified:false,
+    caption:"rebuilt this from scratch after the last version crashed. round 2 hits different",
+    tags:["#round2","#glowup"], sound:"embers — nova.edits",
+    likes:6120, comments:[
+      {who:"@finch", txt:"round 2 always hits harder fr", when:"40m"},
+    ]},
+];
+
+/* ---------- State ---------- */
+let muted = true;
+let activeIndex = 0;
+const state = VIDEOS.map(v => ({ liked:false, saved:false, likeCount:v.likes, comments:[...v.comments] }));
+
+/* ---------- Build feed ---------- */
+const feedEl = document.getElementById('feed');
+
+function fmt(n){
+  if(n >= 1000000) return (n/1000000).toFixed(1)+'M';
+  if(n >= 1000) return (n/1000).toFixed(1)+'K';
+  return n;
+}
+
+VIDEOS.forEach((v, i) => {
+  const slide = document.createElement('div');
+  slide.className = 'slide';
+  slide.dataset.index = i;
+
+  slide.innerHTML = `
+    <video src="${v.src}" loop muted playsinline preload="metadata"></video>
+    <svg class="ring-progress" style="position:absolute; inset:0; width:100%; height:100%; pointer-events:none;">
+      <line x1="0" y1="0" x2="0" y2="0"/>
+    </svg>
+    <div class="scrim"></div>
+
+    <div class="rail">
+      <div class="avatar-wrap">
+        <svg class="ring" viewBox="0 0 52 52">
+          <circle class="track" cx="26" cy="26" r="23"/>
+          <circle class="fill" data-ring cx="26" cy="26" r="23" stroke-dasharray="144.5" stroke-dashoffset="144.5"/>
+        </svg>
+        <img class="avatar" src="${v.avatar}">
+        <div class="plus">${ICONS.plus}</div>
+      </div>
+
+      <button class="act" data-action="like">
+        <div class="icon-btn" data-heart>${ICONS.heart(false)}</div>
+        <div class="count" data-like-count>${fmt(state[i].likeCount)}</div>
+      </button>
+
+      <button class="act" data-action="comment">
+        <div class="icon-btn">${ICONS.comment}</div>
+        <div class="count">${state[i].comments.length}</div>
+      </button>
+
+      <button class="act" data-action="save">
+        <div class="icon-btn" data-save>${ICONS.bookmark(false)}</div>
+        <div class="count">Save</div>
+      </button>
+
+      <button class="act" data-action="share">
+        <div class="icon-btn">${ICONS.share}</div>
+        <div class="count">Share</div>
+      </button>
+
+      <div class="disc"><img src="${v.avatar}"></div>
+    </div>
+
+    <div class="meta">
+      <div class="handle">${v.handle} ${v.verified ? '<span class="badge">verified</span>' : ''}</div>
+      <div class="caption">${v.caption} ${v.tags.map(t=>`<span class="tag">${t}</span>`).join(' ')}</div>
+      <div class="sound">${ICONS.music} ${v.sound}</div>
+    </div>
+  `;
+  feedEl.appendChild(slide);
+});
+
+/* ---------- Video playback via IntersectionObserver ---------- */
+const videos = [...document.querySelectorAll('video')];
+const RING_CIRC = 2 * Math.PI * 23;
+
+videos.forEach(vid => {
+  vid.muted = muted;
+  const ring = vid.closest('.slide').querySelector('[data-ring]');
+  vid.addEventListener('timeupdate', () => {
+    if(!vid.duration) return;
+    const pct = vid.currentTime / vid.duration;
+    ring.setAttribute('stroke-dashoffset', RING_CIRC * (1 - pct));
+  });
+});
+
+const io = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    const vid = entry.target.querySelector('video');
+    if(entry.isIntersecting && entry.intersectionRatio > 0.6){
+      activeIndex = parseInt(entry.target.dataset.index);
+      vid.currentTime = 0;
+      vid.play().catch(()=>{});
+    } else {
+      vid.pause();
+    }
+  });
+}, { threshold: [0, 0.6, 1] });
+
+document.querySelectorAll('.slide').forEach(s => io.observe(s));
+
+/* ---------- Mute toggle ---------- */
+const muteBtn = document.getElementById('muteBtn');
+function renderMute(){ muteBtn.innerHTML = muted ? ICONS.volMute : ICONS.volOn; }
+renderMute();
+muteBtn.addEventListener('click', () => {
+  muted = !muted;
+  videos.forEach(v => v.muted = muted);
+  renderMute();
+});
+
+/* ---------- Tap-to-like (double tap) + burst ---------- */
+document.querySelectorAll('.slide').forEach(slide => {
+  let lastTap = 0;
+  slide.addEventListener('click', (e) => {
+    if(e.target.closest('.rail') || e.target.closest('.navbar')) return;
+    const now = Date.now();
+    if(now - lastTap < 300){
+      const i = parseInt(slide.dataset.index);
+      if(!state[i].liked) setLike(i, true);
+      spawnBurst(slide, e.clientX, e.clientY);
+    } else {
+      const vid = slide.querySelector('video');
+      if(vid.paused) vid.play(); else vid.pause();
+    }
+    lastTap = now;
+  });
+});
+
+function spawnBurst(slide, x, y){
+  const rect = slide.getBoundingClientRect();
+  const el = document.createElement('div');
+  el.className = 'burst';
+  el.style.left = (x - rect.left - 30) + 'px';
+  el.style.top = (y - rect.top - 30) + 'px';
+  el.innerHTML = `<svg width="60" height="60" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21s-6.7-4.35-9.3-8.2C.8 9.7 1.6 6 4.6 4.8 7 3.8 9.4 4.7 12 7.3c2.6-2.6 5-3.5 7.4-2.5 3 1.2 3.8 4.9 1.9 8-2.6 3.85-9.3 8.2-9.3 8.2z"/></svg>`;
+  slide.appendChild(el);
+  setTimeout(() => el.remove(), 700);
+}
+
+/* ---------- Like / Save buttons ---------- */
+function setLike(i, val){
+  state[i].liked = val;
+  state[i].likeCount += val ? 1 : -1;
+  const slide = document.querySelector(`.slide[data-index="${i}"]`);
+  slide.querySelector('[data-heart]').innerHTML = ICONS.heart(val);
+  slide.querySelector('[data-heart]').parentElement.classList.toggle('liked', val);
+  slide.querySelector('[data-like-count]').textContent = fmt(state[i].likeCount);
+}
+
+document.querySelectorAll('[data-action="like"]').forEach(btn => {
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const i = parseInt(btn.closest('.slide').dataset.index);
+    setLike(i, !state[i].liked);
+  });
+});
+
+document.querySelectorAll('[data-action="save"]').forEach(btn => {
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const i = parseInt(btn.closest('.slide').dataset.index);
+    state[i].saved = !state[i].saved;
+    btn.querySelector('[data-save]').innerHTML = ICONS.bookmark(state[i].saved);
+  });
+});
+
+document.querySelectorAll('[data-action="share"]').forEach(btn => {
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    btn.querySelector('.count').textContent = 'Copied';
+    setTimeout(() => btn.querySelector('.count').textContent = 'Share', 1200);
+  });
+});
+
+/* ---------- Comments sheet ---------- */
+const sheet = document.getElementById('sheet');
+const sheetBackdrop = document.getElementById('sheetBackdrop');
+const sheetBody = document.getElementById('sheetBody');
+const commentCount = document.getElementById('commentCount');
+const commentInput = document.getElementById('commentInput');
+let openIndex = null;
+
+function renderComments(i){
+  const list = state[i].comments;
+  commentCount.textContent = `${list.length} comment${list.length===1?'':'s'}`;
+  if(list.length === 0){
+    sheetBody.innerHTML = `<div class="empty-state">No comments yet. Say something first.</div>`;
+    return;
+  }
+  sheetBody.innerHTML = list.map((c, idx) => `
+    <div class="comment">
+      <img src="https://i.pravatar.cc/100?img=${(idx*7 + i*3) % 70}">
+      <div>
+        <div class="who">${c.who}</div>
+        <div class="txt">${c.txt}</div>
+        <div class="when">${c.when}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function openSheet(i){
+  openIndex = i;
+  renderComments(i);
+  sheet.classList.add('open');
+  sheetBackdrop.classList.add('open');
+}
+function closeSheet(){
+  sheet.classList.remove('open');
+  sheetBackdrop.classList.remove('open');
+  openIndex = null;
+}
+
+document.querySelectorAll('[data-action="comment"]').forEach(btn => {
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const i = parseInt(btn.closest('.slide').dataset.index);
+    openSheet(i);
+  });
+});
+document.getElementById('sheetClose').addEventListener('click', closeSheet);
+sheetBackdrop.addEventListener('click', closeSheet);
+
+document.getElementById('commentPost').addEventListener('click', postComment);
+commentInput.addEventListener('keydown', (e) => { if(e.key === 'Enter') postComment(); });
+
+function postComment(){
+  const txt = commentInput.value.trim();
+  if(!txt || openIndex === null) return;
+  state[openIndex].comments.push({ who:"@you", txt, when:"now" });
+  commentInput.value = '';
+  renderComments(openIndex);
+  const slide = document.querySelector(`.slide[data-index="${openIndex}"]`);
+  slide.querySelector('[data-action="comment"] .count').textContent = state[openIndex].comments.length;
+}
+
+/* ---------- Nav icons ---------- */
+document.querySelectorAll('.nitem[data-icon]').forEach(n => {
+  n.querySelector('span').outerHTML = `<div style="height:22px">${ICONS[n.dataset.icon]}</div><span style="font-size:10px;font-weight:600;">${n.dataset.icon[0].toUpperCase()+n.dataset.icon.slice(1)}</span>`;
+});
+document.querySelector('.upload-btn').innerHTML = ICONS.plus;
+</script>
+
+</body>
+</html>
